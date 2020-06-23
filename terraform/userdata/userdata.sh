@@ -1,6 +1,33 @@
 #!/bin/bash
 yum -y update
+
 amazon-linux-extras install -y nginx1.12
+
+# Install all pyenv dependencies
+yum -y install git llvm libffi-devel zlib-devel bzip2-devel readline-devel \
+  sqlite-devel ncurses-devel openssl-devel lzma-sdk-devel libyaml-devel \
+  redhat-rpm-config xz-devel
+yum -y groupinstall 'Development Tools'
+
+
+# Install pyenv
+curl https://pyenv.run | bash
+export PATH="~/.pyenv/bin:$PATH"
+eval "$(pyenv init -)"
+eval "$(pyenv virtualenv-init -)"
+pyenv install 3.8.3
+
+# Install poetry
+curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
+source ~/.poetry/env
+
+# Download and setup project
+git clone https://github.com/przypieczony/crossroads.git; cd crossroads
+poetry install
+poetry run crossroads
+
+
+
 
 cat <<EOF > /usr/share/nginx/html/index.html
 <!DOCTYPE html>
@@ -21,7 +48,7 @@ cat <<EOF > /usr/share/nginx/html/index.html
     <h3>...best wishes...</h3>
     <h4>...to...</h4>
 </div>
-  
+
 <div class="container">
   <div class="jumbotron text-center">
       <h3>Henio!!!!!</h3>

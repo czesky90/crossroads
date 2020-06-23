@@ -4,6 +4,9 @@ version = "0.1.0"
 description = "This is awesome crossroads project!"
 authors = ["kszymans", "czesky"]
 
+[tool.poetry.scripts]
+crossroads = "crossroads.main:main"
+
 [tool.poetry.dependencies]
 python = "^3.8"
 pandas = "^1.0.4"

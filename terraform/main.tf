@@ -114,7 +114,6 @@ resource "aws_launch_template" "cr_launch_template" {
   instance_type = "t2.micro"
   user_data     = filebase64("${path.module}/userdata/userdata.sh")
 
-  health_check_grace_period = 120
   key_name                  = aws_key_pair.auth.id
   vpc_security_group_ids    = [aws_security_group.ec2_sg.id]
 }
@@ -125,6 +124,7 @@ resource "aws_autoscaling_group" "cr_autoscaling_group" {
   min_size            = 1
   vpc_zone_identifier = [aws_subnet.cr_subnet.id]
 
+  health_check_grace_period = 120
   health_check_type   = "ELB"
   load_balancers      = [aws_elb.web.id]
 
