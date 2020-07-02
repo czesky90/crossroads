@@ -10,25 +10,6 @@ yum -y install git llvm libffi-devel zlib-devel bzip2-devel readline-devel \
 yum -y groupinstall 'Development Tools'
 
 
-# Install pyenv
-curl https://pyenv.run | bash
-export PATH="~/.pyenv/bin:$PATH"
-eval "$(pyenv init -)"
-eval "$(pyenv virtualenv-init -)"
-pyenv install 3.8.3
-
-# Install poetry
-curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
-source ~/.poetry/env
-
-# Download and setup project
-git clone https://github.com/przypieczony/crossroads.git; cd crossroads
-poetry install
-poetry run crossroads
-
-
-
-
 cat <<EOF > /usr/share/nginx/html/index.html
 <!DOCTYPE html>
 <html lang="en">
@@ -63,3 +44,24 @@ cat <<EOF > /usr/share/nginx/html/index.html
 EOF
 
 nginx
+
+# Install pyenv
+echo "Changing current directory to /root"
+cd /root/
+echo "Current dir is $PWD"
+export PYENV_ROOT=/root/.pyenv
+curl https://pyenv.run | bash
+export PATH="~/.pyenv/bin:$PATH"
+eval "$(pyenv init -)"
+eval "$(pyenv virtualenv-init -)"
+pyenv install 3.8.3
+
+# Install poetry
+curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
+source ~/.poetry/env
+
+# Download and setup project
+git clone https://github.com/przypieczony/crossroads.git; cd crossroads
+export PATH="~/.poetry/bin:$PATH"
+poetry install
+poetry run crossroads

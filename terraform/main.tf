@@ -95,11 +95,25 @@ resource "aws_elb" "web" {
   subnets         = [aws_subnet.cr_subnet.id, aws_subnet.elb_subnet.id]
   security_groups = [aws_security_group.elb.id]
 
+  access_logs {
+    bucket        = aws_s3_bucket.elb_logs_bucket.bucket
+    bucket_prefix = "elb_logs"
+    interval      = 60
+  }
+
   listener {
     instance_port     = 80
     instance_protocol = "http"
     lb_port           = 80
     lb_protocol       = "http"
+  }
+
+  health_check {
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 3
+    target              = "HTTP:80/"
+    interval            = 15
   }
 }
 
@@ -120,11 +134,11 @@ resource "aws_launch_template" "cr_launch_template" {
 
 resource "aws_autoscaling_group" "cr_autoscaling_group" {
   desired_capacity    = 1
-  max_size            = 1
+  max_size            = 2
   min_size            = 1
   vpc_zone_identifier = [aws_subnet.cr_subnet.id]
 
-  health_check_grace_period = 120
+  health_check_grace_period = 300
   health_check_type   = "ELB"
   load_balancers      = [aws_elb.web.id]
 
@@ -133,6 +147,53 @@ resource "aws_autoscaling_group" "cr_autoscaling_group" {
     version = "$Latest"
   }
 }
+
+resource "aws_s3_bucket" "elb_logs_bucket" {
+  bucket = "cr-elb-logs-bucket"
+  acl    = "private"
+  policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::054676820928:root"
+      },
+      "Action": "s3:PutObject",
+      "Resource": "arn:aws:s3:::cr-elb-logs-bucket/elb_logs/AWSLogs/189268696310/*"
+    },
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "delivery.logs.amazonaws.com"
+      },
+      "Action": "s3:PutObject",
+      "Resource": "arn:aws:s3:::cr-elb-logs-bucket/elb_logs/AWSLogs/189268696310/*",
+      "Condition": {
+        "StringEquals": {
+          "s3:x-amz-acl": "bucket-owner-full-control"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "delivery.logs.amazonaws.com"
+      },
+      "Action": "s3:GetBucketAcl",
+      "Resource": "arn:aws:s3:::cr-elb-logs-bucket"
+    }
+  ]
+}
+POLICY
+  tags = {
+    Name = "CR_BUCKET"
+  }
+}
+
+
+
 
 # resource "aws_elb_attachment" "cr_elb_attachment" {
 #   elb      = "${aws_elb.web.id}"
