@@ -128,8 +128,17 @@ resource "aws_launch_template" "cr_launch_template" {
   instance_type = "t2.micro"
   user_data     = filebase64("${path.module}/userdata/userdata.sh")
 
+  iam_instance_profile {
+    arn  = aws_iam_instance_profile.cr_ec2_instance_profile.arn
+  }
+
   key_name                  = aws_key_pair.auth.id
   vpc_security_group_ids    = [aws_security_group.ec2_sg.id]
+}
+
+resource "aws_iam_instance_profile" "cr_ec2_instance_profile" {
+  name = "cr_ec2_instance_profile"
+  role = aws_iam_role.cr_ec2_iam_role.name
 }
 
 resource "aws_autoscaling_group" "cr_autoscaling_group" {
@@ -148,9 +157,61 @@ resource "aws_autoscaling_group" "cr_autoscaling_group" {
   }
 }
 
+resource "aws_iam_role" "cr_ec2_iam_role" {
+  name = "cr_ec2_iam_role"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement":[
+    {
+        "Action": "sts:AssumeRole",
+        "Effect": "Allow",
+        "Principal": {
+            "Service": "ec2.amazonaws.com"
+        }
+    }
+  ]
+}
+EOF
+
+  tags = {
+    env = "prod"
+  }
+}
+
+resource "aws_iam_policy" "cr_ec2_iam_policy" {
+  name        = "cr_ec2_iam_policy"
+  path        = "/"
+  description = "Access from EC2 to S3 bucket with API keys"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action":  [
+        "s3:Get*",
+        "s3:List*"
+      ],
+      "Resource": ["arn:aws:s3:::crossroad-api-keys",
+                   "arn:aws:s3:::crossroad-api-keys/*"]
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "cr_role_attach" {
+  role       = aws_iam_role.cr_ec2_iam_role.name
+  policy_arn = aws_iam_policy.cr_ec2_iam_policy.arn
+}
+
 resource "aws_s3_bucket" "elb_logs_bucket" {
   bucket = "cr-elb-logs-bucket"
   acl    = "private"
+  force_destroy = true
   policy = <<POLICY
 {
   "Version": "2012-10-17",

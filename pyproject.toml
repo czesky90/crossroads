@@ -11,6 +11,10 @@ crossroads = "crossroads.main:main"
 python = "^3.8"
 pandas = "^1.0.4"
 matplotlib = "^3.2.1"
+flask = "^1.1.2"
+flask-material = "^0.1.1"
+flask-wtf = "^0.14.3"
+flask-googlemaps = "^0.4.0"
 
 [tool.poetry.dev-dependencies]
 
