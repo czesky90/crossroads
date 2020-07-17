@@ -41,7 +41,7 @@ def main_page():
     return render_template('index.html', form = form)
 
 def main():
-    app.run(host='127.0.0.1', port=80)
+    app.run(host='0.0.0.0', port=8080)
 
 
 def backend():

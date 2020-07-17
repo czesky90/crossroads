@@ -208,6 +208,11 @@ resource "aws_iam_role_policy_attachment" "cr_role_attach" {
   policy_arn = aws_iam_policy.cr_ec2_iam_policy.arn
 }
 
+resource "aws_iam_role_policy_attachment" "cr_ecr_role_attach" {
+  role       = aws_iam_role.cr_ec2_iam_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
 resource "aws_s3_bucket" "elb_logs_bucket" {
   bucket = "cr-elb-logs-bucket"
   acl    = "private"

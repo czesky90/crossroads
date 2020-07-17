@@ -1,0 +1,35 @@
+version: '3'
+services:
+
+  #Python Service
+  crossroads:
+    image: 189268696310.dkr.ecr.eu-central-1.amazonaws.com/crossroads:latest
+    container_name: crossroads
+    restart: unless-stopped
+    tty: true
+    environment:
+      GOOGLEMAPS_KEY: ${GOOGLEMAPS_KEY}
+      FLASK_SECRET_KEY: ${FLASK_SECRET_KEY}
+    expose:
+      - "8080"
+    networks:
+      - app-network
+
+  #Nginx Service
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - app-network
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:z
+
+#Docker Networks
+networks:
+  app-network:
+    driver: bridge
