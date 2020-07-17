@@ -1,0 +1,18 @@
+{% extends "material/base.html" %}
+{% import "material/utils.html" as util %}
+{% import "material/wtf.html" as wtf %}
+
+{% block title %}Crossrads!{% endblock %}
+
+{% block content %}
+<div class="container">
+        <div class="row">
+                <div class="col s12 m6">
+                    {{ util.card('Crossrads!', wtf.quick_form(form) )}}
+                </div>
+                <div class="col s12 m6">
+                    {{ googlemap("my_awesome_map", lat=0.23234234, lng=-0.234234234, markers=[(0.12, -0.45345)]) }}
+                </div>
+        </div>
+</div>
+{% endblock %}
