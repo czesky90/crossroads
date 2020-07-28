@@ -4,6 +4,7 @@ from datetime import datetime as dt
 from flask import Flask, render_template, flash, request
 from flask_material import Material
 from flask_googlemaps import GoogleMaps
+from flask_googlemaps import Map
 from flask_wtf import Form, RecaptchaField
 from flask_wtf.file import FileField
 from wtforms import TextField, HiddenField, ValidationError, RadioField,\
@@ -37,12 +38,55 @@ class MainForm(Form):
 
 @app.route('/', methods=['GET', 'POST'])
 def main_page():
+    # Just for tests in order to create coordinates on map
+    coordinates = generate_coordinates()
     form = MainForm()
-    return render_template('index.html', form = form)
+    map = generate_map(coordinates)
+    return render_template('index.html', form = form, crmap = map)
 
 def main():
     app.run(host='0.0.0.0', port=8080)
 
+def generate_map(coordinates):
+
+    map = Map(
+        identifier="crmap",
+        lat = coordinates[0].latitude,
+        lng = coordinates[0].longitude,
+        markers=[(loc.latitude, loc.longitude, loc.infobox) for loc in coordinates],
+        style = "height:600px;width:600px;margin:0;",
+        scale_control = True,
+        streetview_control = True,
+        rotate_control = True,
+        fullscreen_control = True,
+        fit_markers_to_bounds = True
+    )
+    return map
+
+def generate_coordinates():
+    coordinates = []
+    locations = [
+                    {
+                     'lat': 51.205278,
+                     'lng': 16.156389,
+                     'infobox': "<b>Z Legni...</b>"
+                    },
+                    {
+                     'lat': 25.066667,
+                     'lng': -77.333333,
+                     'infobox': "<b>...na Bahamy człeniu!!!</b>"
+                    }
+                ]
+    for loc in locations:
+        coordinates.append(Coordinates(loc))
+
+    return coordinates
+
+class Coordinates():
+    def __init__(self, location):
+        self.latitude = location["lat"]
+        self.longitude = location["lng"]
+        self.infobox = location["infobox"]
 
 def backend():
     df_gps = pd.read_json('sample.json')

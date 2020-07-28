@@ -54,6 +54,10 @@ aws s3 cp s3://crossroad-api-keys/api_keys api_keys
 source api_keys
 rm -f api_keys
 
+# Download self signed certs
+aws s3 cp s3://crossroad-api-keys/localhost.crt docker/localhost.crt
+aws s3 cp s3://crossroad-api-keys/localhost.key docker/localhost.key
+
 # Run app
 cd docker
 docker-compose up

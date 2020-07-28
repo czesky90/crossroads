@@ -15,5 +15,4 @@ ADD pyproject.toml /home/root/crossroads/pyproject.toml
 WORKDIR /home/root/crossroads
 RUN poetry install
 
-
 ENTRYPOINT poetry run crossroads
