@@ -48,7 +48,7 @@ resource "aws_security_group" "elb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # HTTP access from anywhere
+  # HTTPS access from anywhere
   ingress {
     from_port   = 443
     to_port     = 443
@@ -105,6 +105,22 @@ resource "aws_security_group" "ec2_sg" {
   }
 }
 
+resource "aws_route53_zone" "primary" {
+  name = var.domain_name
+}
+
+resource "aws_route53_record" "www" {
+  zone_id = aws_route53_zone.primary.zone_id
+  name    = "www.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = aws_elb.web.dns_name
+    zone_id                = aws_elb.web.zone_id
+    evaluate_target_health = false
+  }
+}
+
 resource "aws_elb" "web" {
   name = "terraform-cr-elb"
 
@@ -118,19 +134,26 @@ resource "aws_elb" "web" {
   }
 
   listener {
-    instance_port     = 80
-    instance_protocol = "http"
-    lb_port           = 80
-    lb_protocol       = "http"
+    lb_port           = 443
+    lb_protocol       = "https"
+    instance_port     = 443
+    instance_protocol = "https"
+    ssl_certificate_id = aws_iam_server_certificate.self_signed_cert.arn
   }
 
   health_check {
     healthy_threshold   = 2
     unhealthy_threshold = 2
     timeout             = 3
-    target              = "HTTP:80/"
+    target              = "HTTPS:443/"
     interval            = 15
   }
+}
+
+resource "aws_iam_server_certificate" "self_signed_cert" {
+  name             = "self_signed"
+  certificate_body = file(var.cert_path)
+  private_key      = file(var.key_cert_path)
 }
 
 resource "aws_key_pair" "auth" {
