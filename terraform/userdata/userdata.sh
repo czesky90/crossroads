@@ -1,14 +1,13 @@
 #!/bin/bash
-yum -y update
+yum install -y git
+amazon-linux-extras install -y docker
+curl -L "https://github.com/docker/compose/releases/download/1.26.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
+PATH=$PATH:/usr/local/bin/
 
-amazon-linux-extras install -y nginx1.12
-
-# Install all pyenv dependencies
-yum -y install git llvm libffi-devel zlib-devel bzip2-devel readline-devel \
-  sqlite-devel ncurses-devel openssl-devel lzma-sdk-devel libyaml-devel \
-  redhat-rpm-config xz-devel
-yum -y groupinstall 'Development Tools'
-
+service docker start
+# TODO maybe there is an option to not hardcoe region
+$(aws ecr get-login --no-include-email --region eu-central-1)
 
 # cat <<EOF > /usr/share/nginx/html/index.html
 # <!DOCTYPE html>
@@ -45,30 +44,20 @@ yum -y groupinstall 'Development Tools'
 #
 # nginx
 
-# Install pyenv
-echo "Changing current directory to /root"
-cd /root/
-echo "Current dir is $PWD"
-export PYENV_ROOT=/root/.pyenv
-curl https://pyenv.run | bash
-export PATH="~/.pyenv/bin:$PATH"
-eval "$(pyenv init -)"
-eval "$(pyenv virtualenv-init -)"
-pyenv install 3.8.3
 
-# Install poetry
-curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
-source ~/.poetry/env
 
-# Download and setup project
 git clone https://github.com/przypieczony/crossroads.git; cd crossroads
-export PATH="~/.poetry/bin:$PATH"
-poetry install
+git checkout flask
 
 # Download credentials and source them
 aws s3 cp s3://crossroad-api-keys/api_keys api_keys
 source api_keys
 rm -f api_keys
 
+# Download self signed certs
+aws s3 cp s3://crossroad-api-keys/localhost.crt docker/localhost.crt
+aws s3 cp s3://crossroad-api-keys/localhost.key docker/localhost.key
+
 # Run app
-poetry run crossroads
+cd docker
+docker-compose up

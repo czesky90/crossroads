@@ -14,6 +14,10 @@ variable "private_subnet" {
   default = "10.0.2.0/24"
 }
 
+variable "domain_name" {
+  default = "przypieczony.com"
+}
+
 variable "public_key_path" {
   description = <<DESCRIPTION
 Path to the SSH public key to be used for authentication.
@@ -22,6 +26,14 @@ connect.
 Example: ~/.ssh/aws-key-pair.pub
 DESCRIPTION
   default = "~/.ssh/aws-key-pair.pub"
+}
+
+variable "cert_path" {
+  description = "path to cert"
+}
+
+variable "key_cert_path" {
+  description = "path to cert key"
 }
 
 variable "key_name" {

@@ -48,6 +48,14 @@ resource "aws_security_group" "elb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # HTTPS access from anywhere
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   # outbound internet access
   egress {
     from_port   = 0
@@ -72,10 +80,18 @@ resource "aws_security_group" "ec2_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # HTTP access from the VPC
+  # HTTP access from anywhere
   ingress {
     from_port   = 80
     to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # HTTP access from anywhere
+  ingress {
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -86,6 +102,22 @@ resource "aws_security_group" "ec2_sg" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_route53_zone" "primary" {
+  name = var.domain_name
+}
+
+resource "aws_route53_record" "www" {
+  zone_id = aws_route53_zone.primary.zone_id
+  name    = "www.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = aws_elb.web.dns_name
+    zone_id                = aws_elb.web.zone_id
+    evaluate_target_health = false
   }
 }
 
@@ -102,19 +134,26 @@ resource "aws_elb" "web" {
   }
 
   listener {
-    instance_port     = 80
-    instance_protocol = "http"
-    lb_port           = 80
-    lb_protocol       = "http"
+    lb_port           = 443
+    lb_protocol       = "https"
+    instance_port     = 443
+    instance_protocol = "https"
+    ssl_certificate_id = aws_iam_server_certificate.self_signed_cert.arn
   }
 
   health_check {
     healthy_threshold   = 2
     unhealthy_threshold = 2
     timeout             = 3
-    target              = "HTTP:80/"
+    target              = "HTTPS:443/"
     interval            = 15
   }
+}
+
+resource "aws_iam_server_certificate" "self_signed_cert" {
+  name             = "self_signed"
+  certificate_body = file(var.cert_path)
+  private_key      = file(var.key_cert_path)
 }
 
 resource "aws_key_pair" "auth" {
@@ -206,6 +245,11 @@ EOF
 resource "aws_iam_role_policy_attachment" "cr_role_attach" {
   role       = aws_iam_role.cr_ec2_iam_role.name
   policy_arn = aws_iam_policy.cr_ec2_iam_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "cr_ecr_role_attach" {
+  role       = aws_iam_role.cr_ec2_iam_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
 resource "aws_s3_bucket" "elb_logs_bucket" {
