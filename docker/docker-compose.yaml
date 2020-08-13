@@ -3,7 +3,7 @@ services:
 
   #Python Service
   crossroads:
-    image: 189268696310.dkr.ecr.eu-central-1.amazonaws.com/crossroads:latest
+    image: ${CR_DOCKER_IMAGE:-189268696310.dkr.ecr.eu-central-1.amazonaws.com/crossroads}
     container_name: crossroads
     restart: unless-stopped
     tty: true
