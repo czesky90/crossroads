@@ -97,9 +97,7 @@ def json_parser():
     """
     #test version with "sample.json" - swap TODO
     x = open("sample.json", "r")
-
     locations = json.loads(x.read())['locations']
-    print(locations)
 
     for location in locations:
         location['latitudeE7'] = location['latitudeE7'] / 10.**7
