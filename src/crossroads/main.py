@@ -1,6 +1,6 @@
 import os
-import pandas as pd, numpy as np, matplotlib.pyplot as plt
-from datetime import datetime as dt
+import json
+from datetime import datetime
 from flask import Flask, render_template, flash, request
 from flask_material import Material
 from flask_googlemaps import GoogleMaps
@@ -88,24 +88,22 @@ class Coordinates():
         self.longitude = location["lng"]
         self.infobox = location["infobox"]
 
-def backend():
-    df_gps = pd.read_json('sample.json')
-    print('There are {:,} rows in the location history dataset'.format(len(df_gps)))
+def json_parser():
+    """
+    Parse .json file with Location History from Google Maps timeline.
 
-    # parse lat, lon, and timestamp from the dict inside the locations column
-    df_gps['lat'] = df_gps['locations'].map(lambda x: x['latitudeE7'])
-    df_gps['lon'] = df_gps['locations'].map(lambda x: x['longitudeE7'])
-    df_gps['timestamp_ms'] = df_gps['locations'].map(lambda x: x['timestampMs'])
+    :param json_file: JSON file
+    :return parsed_locations: a list of chronologically arranged dictionaries, from the oldest ones
+    """
+    # test version with "sample.json" - swap TODO
+    with open("sample.json", "r") as json_coordinates_file:
+        locations = json.loads(json_coordinates_file.read())['locations']
 
-    # convert lat/lon to decimalized degrees and the timestamp to date-time
-    df_gps['lat'] = df_gps['lat'] / 10.**7
-    df_gps['lon'] = df_gps['lon'] / 10.**7
-    df_gps['timestamp_ms'] = df_gps['timestamp_ms'].astype(float) / 1000
-    df_gps['datetime'] = df_gps['timestamp_ms'].map(lambda x: dt.fromtimestamp(x).strftime('%Y-%m-%d %H:%M:%S'))
-    date_range = '{}-{}'.format(df_gps['datetime'].min()[:4], df_gps['datetime'].max()[:4])
+    parsed_locations = []
 
+    for location in locations:
+        parsed_locations.append(dict(datetime=datetime.fromtimestamp(int(location['timestampMs']) / 1000),
+                                     latitude=(location['latitudeE7'] / 10. ** 7),
+                                     longitude=(location['longitudeE7'] / 10. ** 7)))
 
-    # drop columns we don't need, then show a slice of the dataframe
-    df_gps = df_gps.drop(labels=['locations', 'timestamp_ms'], axis=1, inplace=False)
-    print(df_gps)
-    #df_gps[1000:1005]
+    return parsed_locations
