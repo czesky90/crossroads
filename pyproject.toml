@@ -14,6 +14,7 @@ flask = "^1.1.2"
 flask-material = "^0.1.1"
 flask-wtf = "^0.14.3"
 flask-googlemaps = "^0.4.0"
+jsonschema = "^3.2.0"
 
 [tool.poetry.dev-dependencies]
 
