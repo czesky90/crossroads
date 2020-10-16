@@ -31,7 +31,7 @@ EOF
 2. export docker image name from which application will be launched
 `export CR_DOCKER_IMAGE="dev_cr_image"`
 3. Launch application:
- `cd docker; docker-compose up`
+ `docker-compose -f docker/docker-compose.yaml up`
 4. Application should be available via browser under `localhost` URL
 
 *Hint*
@@ -40,10 +40,15 @@ EOF
 
 ### Developing and testing
 
-In order to test your recent changes locally you should just rebuild docker image and launch application.
+In order to test your recent changes locally you should just rebuild docker image and launch application...
+...or for quick tests you can setup your environment with poetry and run `poetry run crossroads`.
 
 ### Troubleshooting
 
 If you have problems with certificates, nginx or any other reverse proxy related issue, run application directly with docker:
 `source api_keys`
 `docker run -p 80:8080 -e GOOGLEMAPS_KEY=${GOOGLEMAPS_KEY} -e FLASK_SECRET_KEY=${FLASK_SECRET_KEY} ${CR_DOCKER_IMAGE}`
+or poetry
+`poetry run crossroads`
+
+If you are running application with `http` and browser still forwards you to `https` follow this instructions: https://galaxyinternet.us/google-chrome-redirects-localhost-to-https-fix/
