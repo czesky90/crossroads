@@ -1,0 +1,53 @@
+{
+    "type": "object",
+    "title": "The root schema",
+    "description": "The root schema comprises the entire JSON document.",
+    "default": {},
+    "required": [
+        "locations"
+    ],
+    "properties": {
+        "locations": {
+            "type": "array",
+            "title": "The locations schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": [],
+            "items": {
+                "anyOf": [
+                    {
+                        "type": "object",
+                        "title": "The first anyOf schema",
+                        "description": "An explanation about the purpose of this instance.",
+                        "default": {},
+                        "required": [
+                            "timestampMs",
+                            "latitudeE7",
+                            "longitudeE7"
+                        ],
+                        "properties": {
+                            "timestampMs": {
+                                "type": "string",
+                                "title": "The timestampMs schema",
+                                "description": "An explanation about the purpose of this instance.",
+                                "default": ""
+                            },
+                            "latitudeE7": {
+                                "type": "integer",
+                                "title": "The latitudeE7 schema",
+                                "description": "An explanation about the purpose of this instance.",
+                                "default": 0
+                            },
+                            "longitudeE7": {
+                                "type": "integer",
+                                "title": "The longitudeE7 schema",
+                                "description": "An explanation about the purpose of this instance.",
+                                "default": 0
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}
+
