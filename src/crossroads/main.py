@@ -121,6 +121,14 @@ class Coordinates():
         self.infobox = location["datetime"]
         self.icon = location['icon']
 
+    def __repr__(self):
+        return {
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "infobox": self.infobox,
+            "icon": self.icon
+        }
+
 def json_parser(json_file):
     """
     Parse .json file with Location History from Google Maps timeline.
