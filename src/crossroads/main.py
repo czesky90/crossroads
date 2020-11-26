@@ -133,6 +133,9 @@ class CoordinatesFactory:
         self.second_data_list = second
         self.coordinates_for_google = self.CoordinatesForGoogleMaps
 
+    def __repr__(self):
+        return self.first_data_list, self.second_data_list
+
     class CoordinatesForGoogleMaps:
         def __init__(self, location):
             self.latitude = location["latitude"]
