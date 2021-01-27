@@ -3,6 +3,11 @@ import os
 from datetime import datetime
 import json
 
+# Usage
+# python coordinates_extractor.py <google_maps_json_file> <start_date> <end_date>
+# Example 
+# python coordinates_extractor.py kszymans-history/Takeout/history/history.json 2019-11-01 2019-11-11
+
 print("Start")
 file_path = sys.argv[1]
 start_date = sys.argv[2]
