@@ -8,9 +8,10 @@ from flask_googlemaps import GoogleMaps
 from flask_googlemaps import Map
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, DataRequired, FileRequired, FileAllowed
-from wtforms import SubmitField, StringField
+from wtforms import SubmitField, StringField, IntegerField
 from wtforms.validators import Length
 from jsonschema import validate
+from geopy import distance
 
 app = Flask(__name__)
 Material(app)
@@ -22,14 +23,19 @@ GoogleMaps(app)
 
 
 class HomeForm(FlaskForm):
-    first_name_field = StringField('Your name', description='Put here your name',
+    first_name_field = StringField('Enter your name:',
                                    validators=[DataRequired(), Length(min=2, max=30)])
-    first_raw_coordinates = FileField('Upload',
+    first_raw_coordinates = FileField('Upload your JSON file  ',
                                       validators=[FileRequired(), FileAllowed(['json'], 'Just Google\'s json!')])
-    second_name_field = StringField('Your friend\'s name', description='Put here name of your friend',
+
+    second_name_field = StringField('Enter your friend\'s name:',
                                     validators=[DataRequired(), Length(min=2, max=30)])
-    second_raw_coordinates = FileField('Upload',
+    second_raw_coordinates = FileField('Upload your friend\'s JSON file ',
                                        validators=[FileRequired(), FileAllowed(['json'], 'Just Google\'s json!')])
+
+    distance_limit_in_m = IntegerField('Distance limit (in meters):', default=1000)
+    time_limit_in_h = IntegerField('Time limit (in hours):', default=24)
+
     submit_button = SubmitField('Find crossed roads!')
 
 
@@ -47,7 +53,11 @@ def main_page():
             second_user_raw_data = user2.read()
             second_user_name = request.form['second_name_field']
 
-            return main_crossroads(first_user_raw_data, second_user_raw_data, first_user_name, second_user_name)
+            distance_limit = int(request.form['distance_limit_in_m'])
+            time_limit = int(request.form['time_limit_in_h'])
+
+            return main_crossroads(first_user_raw_data, second_user_raw_data,
+                                   first_user_name, second_user_name, distance_limit, time_limit)
 
     return render_template('index.html', form=form)
 
@@ -70,7 +80,6 @@ def main():
 
 
 def generate_map(coordinates):
-
     google_map = Map(
         identifier="crmap",
         lat=coordinates[0].latitude,
@@ -219,11 +228,11 @@ class CoordinatesFactory:
         Trims the list of dictionaries from the top or bottom, near the position specified in the arguments.
 
         :param list_to_trim: list of dictionaries to cut
-        :param cut_point_date: (int) date on milliseconds
+        :param cut_point_date: (int) date on seconds
         :param side_to_cut: (str) 'up' or 'down'
         :return: short_list
         """
-        epsilon = 1
+        epsilon = 10000
         wanted = cut_point_date
         low = 0
         high = len(list_to_trim) - 1
@@ -240,6 +249,59 @@ class CoordinatesFactory:
             return list_to_trim[ans:]
         else:
             return list_to_trim[:ans + 1]
+
+    def searches_for_close_coordinates(self, distance_limit, time_limit):
+        """
+        Finds coordinates that are distant from each other maximally by the values declared
+        by the user (time and distance).
+
+        :param: (list) first user dictionaries list with overlapping coordinates
+        :param: (list) second user dictionaries list with overlapping coordinates
+        :param distance_limit: (int) distance limit in m
+        :param time_limit: (int) time limit in h
+        :return: (lists) two lists of dictionaries with coordinates up to 1000m and 24h
+        """
+        time_limit_in_s = time_limit * 3600
+
+        new_first_data_list = []
+        new_second_data_list = []
+
+        min_index = 0
+        max_index = 0
+
+        max_starting_timestamp = self.first_data_list[0]['timestamp'] + time_limit_in_s
+        for coordinate in self.second_data_list:
+            if coordinate['timestamp'] >= max_starting_timestamp:
+                max_index = self.second_data_list.index(coordinate)
+                break
+            else:
+                max_index = self.second_data_list.index(self.second_data_list[-1])
+
+        for coordinate_from_first in self.first_data_list:
+            try:
+                while coordinate_from_first['timestamp'] - time_limit_in_s >= self.second_data_list[min_index]['timestamp']:
+                    min_index += 1
+                    break
+
+                while coordinate_from_first['timestamp'] + time_limit_in_s >= self.second_data_list[max_index]['timestamp']:
+                    max_index += 1
+                    break
+            except IndexError:
+                break
+
+            for coordinate_from_second in self.second_data_list[min_index:max_index]:
+                dist = abs(float(distance.distance((coordinate_from_first['latitude'], coordinate_from_first['longitude']),
+                                               (coordinate_from_second['latitude'], coordinate_from_second['longitude'])).m))
+                if dist <= distance_limit:
+                    if coordinate_from_first not in new_first_data_list:
+                        new_first_data_list.append(coordinate_from_first)
+                    if coordinate_from_second not in new_second_data_list:
+                        new_second_data_list.append(coordinate_from_second)
+
+        self.first_data_list = new_first_data_list
+        self.second_data_list = new_second_data_list
+
+        return self.first_data_list, self.second_data_list
 
     def add_icon(self):
         """
@@ -281,8 +343,8 @@ class CoordinatesFactory:
         return coordinates
 
 
-def main_crossroads(first_user_raw_data, second_user_raw_data, first_user_name, second_user_name):
-
+def main_crossroads(first_user_raw_data, second_user_raw_data,
+                    first_user_name, second_user_name, distance_limit, time_limit):
     first_user_json_file_object = JsonProcessing(first_user_raw_data)
     second_user_json_object = JsonProcessing(second_user_raw_data)
 
@@ -303,10 +365,14 @@ def main_crossroads(first_user_raw_data, second_user_raw_data, first_user_name, 
 
         else:
             coordinates_in_time.establishing_common_part()
-            coordinates_in_time.add_icon()
-            final_coordinates = coordinates_in_time.generate_coordinates()
+            if coordinates_in_time.searches_for_close_coordinates(distance_limit, time_limit) == ([], []):
 
-            return locations_page(final_coordinates, first_user_name, second_user_name)
+                return problems("Your coordinates are more than %dm apart." % distance_limit)
+            else:
+                coordinates_in_time.add_icon()
+                final_coordinates = coordinates_in_time.generate_coordinates()
+
+                return locations_page(final_coordinates, first_user_name, second_user_name)
 
     else:
 
